@@ -1,4 +1,4 @@
-/ **
+/**
 * Implementation of various scheduling algorithms.
 * FCFS scheduling
 */
@@ -8,7 +8,7 @@
 #include "task.h"
 #include "list.h"
 #include "cpu.h"
-#define MAX TASKS 100
+#define MAX_TASKS 100
 
 // reference to the head of the list
 struct node *head = NULL;
@@ -23,7 +23,7 @@ int response [MAX_TASKS];
 int completion[MAX_TASKS];
 int arrival[MAX_TASKS];
 float ratio [MAX_TASKS];
-int total waiting = 0;
+int total_waiting = 0;
 int total_turnaround = 0;
 int total_burst = 0;
 char *names [MAX_TASKS];
@@ -43,81 +43,90 @@ void add(char *name, int arrivalTime, int burst) {
   // insert the new task into the list of tasks
   insert(&head, newTask);
 }
-/ **
+/**
 * Run the FCFS scheduler
 */
 void schedule()
 {
-Task *current;
+	Task *current;
 
-// sanity checker
-traverse (head);
+	// sanity checker
+	traverse (head);
 
-while (head != NULL) {
+	while (head != NULL) {
 
-current = selectNextTask();
+		current = selectNextTask();
 
-burst[current->tid] = current->burst;//collect burst times
-arrival[current->tid] = current->arrivalTime;//collect arrival times
-names [current->tid] = strdup(current->name);//collect names
+		burst[current->tid] = current->burst;//collect burst times
+		arrival[current->tid] = current->arrivalTime;//collect arrival times
+		names [current->tid] = strdup(current->name);//collect names
 
-response [current->tid] = current_time - current->arrivalTime;//response=current-arrival
+		response [current->tid] = current_time - current->arrivalTime;//response=current-arrival
 
-printf("Running %s at time %d\n", current->name, current_time);
+		printf("Running %s at time %d\n", current->name, current_time);
 
-run(current, current->burst) ;
-current_time += current->burst;//time at present
-completion [current->tid] = current_time;
-turnaround [current->tid] = completion[current->tid] - current->arrivalTime;//turnaround=completion-arrival
+		run(current, current->burst) ;
+		current_time += current->burst;//time at present
+		completion [current->tid] = current_time;
+		turnaround [current->tid] = completion[current->tid] - current->arrivalTime;
+		//turnaround=completion-arrival
 
-waiting[current->tid] = turnaround[current->tid] - current->burst;//waiting=turnaround-burst
-ratio[current->tid] = (float) (waiting[current->tid] + burst[current->tid]) / burst[current->tid];//ratio=(waiting+burst)/burst
-total_waiting += waiting[current->tid];
-total_turnaround += turnaround[current->tid];
+		waiting[current->tid] = turnaround[current->tid] - current->burst;
+		//waiting=turnaround-burst
+		ratio[current->tid] = (float) (waiting[current->tid] + burst[current->tid]) / burst[current->tid];
+		//ratio=(waiting+burst)/burst
+		total_waiting += waiting[current->tid];
+		total_turnaround += turnaround[current->tid];
+		total_burst += burst[current->tid];
+		
+		delete(&head, current);
 
-delete(&head, current);
+		
+	}
+	
 
-printf("\nTask\tArr\tBurst\tWait\tTurn\tResp\tRatio");
+		printf("\nTask\tArr\tBurst\tWait\tTurn\tResp\tRatio");
 
-for (int i=0; i<nextTid; i++)
+		for (int i=0; i<nextTid; i++)
 
-printf("\n%s\t%d\t%d\t%d\t%d\t%d\t%.2f",
-names[i], arrival[i], burst[i], waiting[i], turnaround[i], response[i],
-ratio[i]);
+		printf("\n%s\t%d\t%d\t%d\t%d\t%d\t%.2f",
+		names[i], arrival[i], burst[i], waiting[i], turnaround[i], response[i],
+		ratio[i]);
 
-float avg_waiting = (float)total_waiting / nextTid;
-float avg_turnaround = (float) total_turnaround / nextTid;
-int idle_time = current_time - total_burst;//0, since arrival is always 0 (no time spent idle)
-float cpu_utilization = (float) total_burst / current_time * 100;//100%, since idle time is 0
-float active_throughput = (float) nextTid / total_burst;//With idle time
-float passive_throughput = (float) nextTid / current_time;//Without idle time
+		float avg_waiting = (float)total_waiting / nextTid;
+		float avg_turnaround = (float) total_turnaround / nextTid;
+		int idle_time = current_time - total_burst;//0, since arrival is always 0 (no time spent idle)
+		float cpu_utilization = (float) total_burst / current_time * 100;//100%, since idle time is 0
+		float active_throughput = (float) nextTid / total_burst;//With idle time
+		float passive_throughput = (float) nextTid / current_time;//Without idle time
 
-printf("\n\nIdle Time: %d", idle_time);
-printf("\nCPU Utilization: %.2f", cpu_utilization);
-printf("\nActive Throughput: %.2f task/unit time", active_throughput);
-printf("\nPassive Throughput: %.2f task/unit time", passive_throughput);
-printf("\n\nAverage Waiting Time: %.3f", avg_waiting);
-printf("\nAverage Turnaround Time: %.3f", avg_turnaround);
-printf("\nCPU Utilization: %.3f", cpu_utilization);
-
-/ **
+		printf("\n\nIdle Time: %d", idle_time);
+		printf("\nCPU Utilization: %.2f", cpu_utilization);
+		printf("\nActive Throughput: %.2f task/unit time", active_throughput);
+		printf("\nPassive Throughput: %.2f task/unit time", passive_throughput);
+		printf("\n\nAverage Waiting Time: %.3f", avg_waiting);
+		printf("\nAverage Turnaround Time: %.3f", avg_turnaround);
+		printf("\nCPU Utilization: %.3f", cpu_utilization);
+}
+/**
 * Returns the next task selected to run.
 */
 Task *selectNextTask()
+{
+	struct node *temp = head;//Holds current process
+	struct node *selected = head;//Holds best selected process
 
-struct node *temp = head;//Holds current process
-struct node *selected = head;//Holds best selected process
-
-while (temp != NULL) {//Keep looping until end of list
-if (temp->task->arrivalTime < selected->task->arrivalTime) {
-selected = temp;//Compares arrival times, sets selected to temp
-
-else if (temp->task->arrivalTime == selected->task->arrivalTime) {//if arrival time equal
-if (strcmp(temp->task->name, selected->task->name) < 0) {
-selected = temp;//Compares alphabetically
-
-temp = temp->next;//Next node
-
-return selected->task;//Best node returned
+	while (temp != NULL) {//Keep looping until end of list
+		if (temp->task->arrivalTime < selected->task->arrivalTime) {
+		selected = temp;//Compares arrival times, sets selected to temp
+		}
+		else if (temp->task->arrivalTime == selected->task->arrivalTime) {//if arrival time equal
+			if (strcmp(temp->task->name, selected->task->name) < 0) {
+			selected = temp;//Compares alphabetically
+			}
+		}
+		temp = temp->next;//Next node
+	}
+	return selected->task;//Best node returned
 
 }
