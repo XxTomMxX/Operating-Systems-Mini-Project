@@ -3,6 +3,7 @@
 
 # make fcfs - for FCFS scheduling
 # make rr   - for RR scheduling
+# make sjf - for SJF scheduling
 
 CC=gcc
 CFLAGS=-Wall
@@ -11,6 +12,7 @@ clean:
 	rm -rf *.o
 	rm -rf fcfs
 	rm -rf rr
+	rm -rf sjf
 	
 
 fcfs: driver.o list.o CPU.o schedule_fcfs.o
@@ -33,3 +35,9 @@ list.o: list.c list.h
 
 CPU.o: CPU.c cpu.h
 	$(CC) $(CFLAGS) -c CPU.c
+
+sjf: driver.o list.o CPU.o schedule_sjf.o
+	$(CC) $(CFLAGS) -o sjf driver.o schedule_sjf.o list.o CPU.o
+
+schedule_sjf.o: schedule_sjf.c
+	$(CC) $(CFLAGS) -c schedule_sjf.c
